@@ -1,153 +1,211 @@
 import React, { useState } from 'react';
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import {getDownloadURL, getStorage, ref, uploadBytes} from 'firebase/storage'
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
 
-const Blog = () => {
-  const [title, setTitle] = useState('');
-  const [points, setPoints] = useState({});
-  const [previewImage, setPreviewImage] = useState(null);
-  const [previewImageUrl, setPreviewImageUrl] = useState('');
-  const [para, setPara] = useState('');
-  const [tags, setTags] = useState([]);
-  const [newPointName, setNewPointName] = useState('');
-  const [newPointContent, setNewPointContent] = useState('');
-  const [newPointImage, setNewPointImage] = useState(null);
-  const [newPointImageUrl, setNewPointImageUrl] = useState('');
-  const [newPointImages, setNewPointImages] = useState([]);
-  const [pointImages, setPointImages] = useState([]);
-  const handleAddPoint = () => {
-    if (newPointName && newPointContent && newPointImage) {
-      setNewPointImages([...newPointImages, newPointImage]);
-      setPoints({
-        ...points,
-        [newPointName]: { content: newPointContent },
-      });
-      setNewPointName('');
-      setNewPointContent('');
-      setNewPointImage(null);
-      setNewPointImageUrl('');
-    }
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyCWbm_NXKbmTrkbq5T9DUgeVTxS-w5P4gA",
+  authDomain: "cmsss-8b6de.firebaseapp.com",
+  projectId: "cmsss-8b6de",
+  storageBucket: "cmsss-8b6de.appspot.com",
+  messagingSenderId: "716741118558",
+  appId: "1:716741118558:web:27ee416b1c286a446042cf",
+  measurementId: "G-VN86FX1V8B"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+export const image = getStorage(app)
+
+const DynamicDataForm = () => {
+  const [formData, setFormData] = useState({
+    title: '',
+    points: {},
+    previewImage: null,
+    tags: [],
+    newPointKey: ''
+  });
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      [name]: name === "tags" ? value.split(",") : value
+    }));
   };
 
-  const handleImageChange = (e, type) => {
+  const handlePreviewImageChange = (e) => {
+    const file = e.target.files[0];
+    setFormData((prevData) => ({
+      ...prevData,
+      previewImage: file
+    }));
+  };
+
+  const handlePointImageChange = (e, pointKey) => {
     const file = e.target.files[0];
     if (file) {
-      if (type === 'preview') {
-        setPreviewImage(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setPreviewImageUrl(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else if (type === 'point') {
-        setNewPointImage(file);
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setNewPointImageUrl(reader.result);
-        };
-        reader.readAsDataURL(file);
-      } else if (type === 'pointImage') {
-        // Handling point images
-        setPointImages([...pointImages, file]);
-      }
+       const imageRef = ref(image,`point_images/${pointKey}/${file.name}`);
+      uploadBytes(imageRef,file).then((snapshot) => {
+        console.log(snapshot)
+        getDownloadURL(snapshot.ref).then((url) => {
+          console.log(url)
+          setFormData((prevData) => ({
+            ...prevData,
+            points: {
+              ...prevData.points,
+              [pointKey]: {
+                ...prevData.points[pointKey],
+                image: url
+              }
+            }
+          }));
+        });
+      });
     }
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    const pointsArray = Object.keys(points).map((key) => ({
-      key,
-      content: points[key].content,
+  const handlePointChange = (e, pointKey, subKey) => {
+    const { value } = e.target;
+    setFormData((prevData) => ({
+      ...prevData,
+      points: {
+        ...prevData.points,
+        [pointKey]: {
+          ...prevData.points[pointKey],
+          [subKey]: value
+        }
+      }
     }));
+  };
 
-    const pointsObject = {};
-    pointsArray.forEach((point) => {
-      pointsObject[point.key] = { content: point.content };
-    });
+  const addPoint = () => {
+    const newPointKey = formData.newPointKey.trim();
+    if (newPointKey) {
+      setFormData((prevData) => ({
+        ...prevData,
+        points: {
+          ...prevData.points,
+          [newPointKey]: { text: '', image: '' }
+        },
+        newPointKey: ''
+      }));
+    }
+  };
 
-    const formData = new FormData();
-    formData.append('title', title);
-    formData.append('para', para);
-    formData.append('tags', tags.join(','));
-    formData.append('previewImage', previewImage);
-    formData.append('points', JSON.stringify(pointsObject)); // Pass pointsObject instead of pointsArray
+  const removePoint = (pointKey) => {
+    const { [pointKey]: deletedPoint, ...remainingPoints } = formData.points;
+    setFormData((prevData) => ({
+      ...prevData,
+      points: remainingPoints
+    }));
+  };
 
-    newPointImages.forEach((image, index) => {
-      formData.append(`pointImages[${index}]`, image);
-    });
+  const handleSubmit = async(e) => {
+    e.preventDefault();
+    const formDataToSend = new FormData();
+    formDataToSend.append('title', formData.title);
+    formDataToSend.append('previewImage', formData.previewImage);
+    formDataToSend.append('tags', Array.isArray(formData.tags) ? formData.tags.join(',') : '');
+    formDataToSend.append('points',JSON.stringify(formData.points))
+    
 
-    pointImages.forEach((image, index) => {
-      formData.append(`pointImages[${index}]`, image);
-    });
 
     try {
-   
-
+      // Send formDataToSend to your backend
       const response = await fetch('https://cms-for-course-and-authentification.vercel.app/blogs', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Il9pZCI6IjY2NTA5NGFmM2Y5ZDNiNjk2YjY3Njc0NiIsIm5hbWUiOiJBREFSU0ggR1VSSkFSIiwiZW1haWwiOiJhZGFyc2hAZ21haWwuY29tIiwicGFzc3dvcmQiOiIkMmEkMTAkQ1ludThUQklmcXFETzdOcDEwNHk5dXNMaktvbWdYbWNRZHlaOWhDTDd1cGY3ZksvQURhdjYiLCJhdXRob3JpemF0aW9uIjp0cnVlLCJfX3YiOjB9LCJpYXQiOjE3MTY2MzQxOTJ9.qdoSLqotYRB1MG2LyoQE0FUCwfIAkCAGDLvBqLc2NeU'}`,
         },
-        body: formData,
-
-        
+        body: formDataToSend
       });
-
+  
+      // Check if request was successful
       if (!response.ok) {
-        throw new Error('Network response was not ok');
+        throw new Error('Failed to submit form');
       }
-
-      const data = await response.json();
-      console.log('Blog posted successfully:', data);
+  
+      // Handle successful response
+      console.log('Form submitted successfully!');
+      // Reset form state if needed
     } catch (error) {
-      console.error('Error posting blog:', error);
+      // Handle errors
+      console.error('Error submitting form:', error.message);
     }
+
   };
-console.log(previewImage)
-console.log(points)
-
-console.log(pointImages)
-
   return (
-    <form onSubmit={handleSubmit} encType="multipart/form-data">
-      <div>
-        <label>Title:</label>
-        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} required />
-      </div>
-      <div>
-        <label>Paragraph:</label>
-        <textarea value={para} onChange={(e) => setPara(e.target.value)} required />
-      </div>
-      <div>
-        <label>Preview Image:</label>
-        <input type="file" onChange={(e) => handleImageChange(e, 'preview')} required />
-        {previewImageUrl && <img src={previewImageUrl} alt="Preview" style={{ maxWidth: '100px' }} />}
-      </div>
-      <div>
-        <label>Tags (comma separated):</label>
-        <input type="text" value={tags.join(', ')} onChange={(e) => setTags(e.target.value.split(', '))} />
-      </div>
-      <div>
-        <label>Add Point:</label>
-        <input type="text" placeholder="Point Name" value={newPointName} onChange={(e) => setNewPointName(e.target.value)} required />
-        <input type="file" onChange={(e) => handleImageChange(e, 'point')} required />
-        {newPointImageUrl && <img src={newPointImageUrl} alt="New Point" style={{ maxWidth: '100px' }} />}
-        <input type="text" placeholder="Point Content" value={newPointContent} onChange={(e) => setNewPointContent(e.target.value)} required />
-        <button type="button" onClick={handleAddPoint}>Add Point</button>
-      </div>
-      <div>
-        <h3>Points</h3>
-        {Object.keys(points).map((key) => (
-          <div key={key}>
-            <strong>{key}:</strong>
-            <p>{points[key].content}</p>
-          </div>
-        ))}
-      </div>
-      <div>
-        <button type="submit">Post Blog</button>
-      </div>
-    </form>
+    <div>
+      <h2>Dynamic Data Form</h2>
+      <form  onSubmit={handleSubmit}>
+        <div>
+          <label>Title:</label>
+          <input
+            type="text"
+            name="title"
+            value={formData.title}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label>Preview Image:</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handlePreviewImageChange}
+          />
+        </div>
+        <div>
+          <label>Tags:</label>
+          <input
+            type="text"
+            name="tags"
+            value={Array.isArray(formData.tags) ? formData.tags.join(',') : ''}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label>New Point Key:</label>
+          <input
+            type="text"
+            name="newPointKey"
+            value={formData.newPointKey}
+            onChange={handleChange}
+          />
+        </div>
+        <div>
+          <label>Points:</label>
+          {Object.entries(formData.points).map(([pointKey, point]) => (
+            <div key={pointKey}>
+              <input
+                type="text"
+                value={point.text}
+                placeholder="Text"
+                onChange={(e) => handlePointChange(e, pointKey, 'text')}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(e) => handlePointImageChange(e, pointKey)}
+              />
+              <button type="button" onClick={() => removePoint(pointKey)}>
+                Remove
+              </button>
+            </div>
+          ))}
+          <button type="button" onClick={addPoint}>
+            Add Point
+          </button>
+        </div>
+        <button type="submit">Submit</button>
+      </form>
+    </div>
   );
 };
 
-export default Blog;
+export default DynamicDataForm;

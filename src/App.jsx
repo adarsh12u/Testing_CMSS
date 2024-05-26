@@ -17,7 +17,7 @@ const App = () => {
       }, 
       
       {
-            path:"/points",
+            path:"/p",
             element:<PointForm/>
             
          }
