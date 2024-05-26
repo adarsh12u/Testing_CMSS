@@ -14,7 +14,9 @@ const App = () => {
       {
          path:"/",
          element:<Blog/>,   
-      },  {
+      }, 
+      
+      {
             path:"/points",
             element:<PointForm/>
          }
