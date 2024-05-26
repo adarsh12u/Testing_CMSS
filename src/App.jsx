@@ -19,6 +19,7 @@ const App = () => {
       {
             path:"/points",
             element:<PointForm/>
+            
          }
           
        
