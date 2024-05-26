@@ -88,6 +88,8 @@ const Blog = () => {
           'Authorization': `Bearer ${'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyIjp7Il9pZCI6IjY2NTA5NGFmM2Y5ZDNiNjk2YjY3Njc0NiIsIm5hbWUiOiJBREFSU0ggR1VSSkFSIiwiZW1haWwiOiJhZGFyc2hAZ21haWwuY29tIiwicGFzc3dvcmQiOiIkMmEkMTAkQ1ludThUQklmcXFETzdOcDEwNHk5dXNMaktvbWdYbWNRZHlaOWhDTDd1cGY3ZksvQURhdjYiLCJhdXRob3JpemF0aW9uIjp0cnVlLCJfX3YiOjB9LCJpYXQiOjE3MTY2MzQxOTJ9.qdoSLqotYRB1MG2LyoQE0FUCwfIAkCAGDLvBqLc2NeU'}`,
         },
         body: formData,
+
+        
       });
 
       if (!response.ok) {
