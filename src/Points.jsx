@@ -77,6 +77,7 @@ const[v,setv]=  useState();
 // console.log(news)
 // console.log(JSON.stringify(news))
   formData.append('points',JSON.stringify(points))
+  
 console.log(formData)
 // const c = JSON.stringify(news)
 // console.log(`${i}-----`,c)
